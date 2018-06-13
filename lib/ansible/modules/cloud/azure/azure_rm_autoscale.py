@@ -351,12 +351,9 @@ class AzureRMAutoScale(AzureRMModuleBase):
     def delete_auto_scale(self):
         self.log('Deleting auto scale settings {0}'.format(self.name))
         try:
-            poller = self.monitor_client.autoscale_settings.delete(self.resource_group, self.name)
-            result = self.get_poller_result(poller)
+            return self.monitor_client.autoscale_settings.delete(self.resource_group, self.name)
         except Exception as exc:
             self.fail("Error deleting auto scale settings {0} - {1}".format(self.name, str(exc)))
-
-        return result
 
 
 def main():
