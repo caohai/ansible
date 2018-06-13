@@ -176,7 +176,7 @@ profile_spec=dict(
     count=dict(type='int', required=True),
     max_count=dict(type='int'),
     min_count=dict(type='int'),
-    rules=dict(type='list', default=[], elements='dict', options=rule_spec),
+    rules=dict(type='list', default='[]', elements='dict', options=rule_spec),
     fixed_date_timezone=dict(type='str'),
     fixed_date_start=dict(type='str'),
     fixed_date_end=dict(type='str'),
