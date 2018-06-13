@@ -181,7 +181,7 @@ profile_spec=dict(
     fixed_date_timezone=dict(type='str'),
     fixed_date_start=dict(type='str'),
     fixed_date_end=dict(type='str'),
-    recurrence_frequency=dict(type='str', choices=['Second', 'Minute', 'Hour', 'Day', 'Week', 'Month', 'Year']),
+    recurrence_frequency=dict(type='str', choices=['None', 'Second', 'Minute', 'Hour', 'Day', 'Week', 'Month', 'Year'], default='None'),
     recurrence_timezone=dict(type='str'),
     recurrence_days=dict(type='list', elements='int'),
     recurrence_hours=dict(type='list', elements='int'),
@@ -310,7 +310,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                    schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
                                                                                               days=p.get('recurrence_days'),
                                                                                               hours=p.get('recurrence_hours'),
-                                                                                              minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') else None
+                                                                                              minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
                                             ) for p in self.profiles or []]
 
                 notifications = [AutoscaleNotification(email=EmailNotification(**n),
