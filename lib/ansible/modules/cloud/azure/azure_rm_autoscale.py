@@ -100,7 +100,7 @@ def auto_scale_to_dict(instance):
         id=instance.id,
         name=instance.name,
         location=instance.location,
-        profiles=[profile_to_dict(p) for p in instance.profiles or []],
+        profiles=[profile_to_dict(p, instance.target_resource_uri) for p in instance.profiles or []],
         notifications=[notification_to_dict(n) for n in instance.notifications or []],
         enabled=instance.enabled,
         target=instance.target_resource_uri
@@ -124,14 +124,14 @@ def rule_to_dict(rule, default_uri):
                 cooldown=rule.scale_action.direction if rule.scale_action else 'PT5M')
 
 
-def profile_to_dict(profile):
+def profile_to_dict(profile, default_uri):
     if not profile:
         return dict()
     return dict(name=profile.name,
                 count=profile.capacity.default,
                 max_count=profile.capacity.maximum,
                 min_count=profile.capacity.minimum,
-                rules=[],
+                rules=[rule_to_dict(r, default_uri) for r in profile.rules],
                 fixed_date_timezone=profile.fixed_date.time_zone if profile.fixed_date else None,
                 fixed_date_start=profile.fixed_date.start if profile.fixed_date else None,
                 fixed_date_end=profile.fixed_date.end if profile.fixed_date else None,
@@ -263,7 +263,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
 
         # trigger resource should be the setting's target uri as default
         for profile in self.profiles or []:
-            for rule in profile.rules or []:
+            for rule in profile.get('rules', []):
                 rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
 
         self.log('Fetching auto scale settings {0}'.format(self.name))
@@ -288,7 +288,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                     changed = True
                 if self.enabled != results.enabled:
                     changed = True
-                profile_result_set = set([profile_to_dict(p) for p in results.profiles or []])
+                profile_result_set = set([profile_to_dict(p, self.target) for p in results.profiles or []])
                 if profile_result_set != set(self.profiles):
                     changed = True
                 notification_result_set = set([notification_to_dict(n) for n in results.notifications or []])
@@ -297,22 +297,22 @@ class AzureRMAutoScale(AzureRMModuleBase):
             if changed:
                 # construct the instance will be send to create_or_update api
                 profiles = [AutoscaleProfile(name=p.name,
-                                             capacity=ScaleCapacity(minimum=p.min_count,
-                                                                    maximum=p.max_count,
-                                                                    default=p.count),
+                                             capacity=ScaleCapacity(minimum=p.get('min_count'),
+                                                                    maximum=p.get('max_count'),
+                                                                    default=p.get('count')),
                                              rules=[ScaleRule(metric_trigger=MetricTrigger(**r),
-                                                              scale_action=ScaleAction(**r)) for r in p.rules],
-                                             fixed_date=TimeWindow(time_zone=p.fixed_date_timezone,
-                                                                   start=p.fixed_date_start,
-                                                                   end=p.fixed_date_end),
-                                             recurrence=Recurrence(frequency=p.recurrence_frequency,
-                                                                   schedule=RecurrentSchedule(time_zone=p.recurrence_timezone,
-                                                                                              days=p.recurrence_days,
-                                                                                              hours=p.recurrence_hours,
-                                                                                              minutes=p.recurrence_mins))) for p in self.profiles or []]
+                                                              scale_action=ScaleAction(**r)) for r in p.get('rules')],
+                                             fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
+                                                                   start=p.get('fixed_date_start'),
+                                                                   end=p.get('fixed_date_end')),
+                                             recurrence=Recurrence(frequency=p.get('recurrence_frequency'),
+                                                                   schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
+                                                                                              days=p.get('recurrence_days'),
+                                                                                              hours=p.get('recurrence_hours'),
+                                                                                              minutes=p.get('recurrence_mins')))) for p in self.profiles or []]
 
                 notifications = [AutoscaleNotification(email=EmailNotification(**n),
-                                                       webhooks=[WebhookNotification(**w) for w in n.webhooks]) for n in self.notifications or []]
+                                                       webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
 
                 instance = AutoscaleSettingResource(location=self.location,
                                                     tags=self.tags,
