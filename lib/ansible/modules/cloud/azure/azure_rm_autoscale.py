@@ -103,7 +103,8 @@ def auto_scale_to_dict(instance):
         profiles=[profile_to_dict(p, instance.target_resource_uri) for p in instance.profiles or []],
         notifications=[notification_to_dict(n) for n in instance.notifications or []],
         enabled=instance.enabled,
-        target=instance.target_resource_uri
+        target=instance.target_resource_uri,
+        tags=instance.tags
     )
 
 
@@ -145,8 +146,8 @@ def profile_to_dict(profile, default_uri):
 def notification_to_dict(notification):
     if not notification:
         return dict()
-    return dict(send_to_subscription_administrator=notification.email.send_to_subscription_administrator if notification.email else True,
-                send_to_subscription_co_administrators=notification.email.send_to_subscription_co_administrators if notification.email else True,
+    return dict(send_to_subscription_administrator=notification.email.send_to_subscription_administrator if notification.email else False,
+                send_to_subscription_co_administrators=notification.email.send_to_subscription_co_administrators if notification.email else False,
                 custom_emails=notification.email.custom_emails if notification.email else None,
                 webhooks=[dict(service_url=w.service_url,
                                properties=w.properties) for w in notification.webhooks] if notification.webhooks else None)
@@ -195,8 +196,8 @@ webhook_spec=dict(
 
 
 notification_spec=dict(
-    send_to_subscription_administrator=dict(type='bool', alias=['enable_admin'], default=True),
-    send_to_subscription_co_administrators=dict(type='bool', alias=['enable_co_admin'], default=True),
+    send_to_subscription_administrator=dict(type='bool', alias=['enable_admin']),
+    send_to_subscription_co_administrators=dict(type='bool', alias=['enable_co_admin'],),
     custom_emails=dict(type='list', elements='str'),
     webhooks=dict(type='list', elements='dict', options=webhook_spec)
 )
@@ -213,8 +214,8 @@ class AzureRMAutoScale(AzureRMModuleBase):
             location=dict(type='str'),
             target=dict(type='raw'),
             profiles=dict(type='list', elements=dict, options=profile_spec),
-            enabled=dict(type='str', elements=dict, options=notification_spec),
-            notifications=dict(type='list')
+            enabled=dict(type=bool),
+            notifications=dict(type='list', elements=dict, options=notification_spec)
         )
 
         self.results = dict(
