@@ -316,18 +316,17 @@ class AzureRMAutoScale(AzureRMModuleBase):
                 notifications = [AutoscaleNotification(email=EmailNotification(**n),
                                                        webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
 
-                instance = AutoscaleSettingResource(location=self.location,
-                                                    tags=self.tags,
-                                                    profiles=profiles,
-                                                    notifications=notifications,
-                                                    enabled=self.enabled,
-                                                    autoscale_setting_resource_name=resource_name,
-                                                    target_resource_uri=self.target)
+                results = AutoscaleSettingResource(location=self.location,
+                                                   tags=self.tags,
+                                                   profiles=profiles,
+                                                   notifications=notifications,
+                                                   enabled=self.enabled,
+                                                   autoscale_setting_resource_name=resource_name,
+                                                   target_resource_uri=self.target)
                 if not self.check_mode:
-                    instance = self.create_or_update_auto_scale(instance)
+                    results = self.create_or_update_auto_scale(results)
                 # results should be the dict of the instance
-                self.results = auto_scale_to_dict(instance)
-
+        self.results = auto_scale_to_dict(results)
         self.results['changed'] = changed
         return self.results
 
