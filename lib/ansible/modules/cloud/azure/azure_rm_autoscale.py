@@ -309,7 +309,8 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                    schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
                                                                                               days=p.get('recurrence_days'),
                                                                                               hours=p.get('recurrence_hours'),
-                                                                                              minutes=p.get('recurrence_mins')))) for p in self.profiles or []]
+                                                                                              minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') else None
+                                            ) for p in self.profiles or []]
 
                 notifications = [AutoscaleNotification(email=EmailNotification(**n),
                                                        webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
