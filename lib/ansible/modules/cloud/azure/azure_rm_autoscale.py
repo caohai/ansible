@@ -333,14 +333,9 @@ class AzureRMAutoScale(AzureRMModuleBase):
     def get_auto_scale(self):
         try:
             return self.monitor_client.autoscale_settings.get(self.resource_group, self.name)
-        except CloudError as cloud_err:
-            # Return None iff the resource is not found
-            if cloud_err.status_code == 404:
-                self.log('{0}'.format(str(cloud_err)))
-                return None
-            self.fail('Error: failed to get auto scale settings {0} - {1}'.format(self.name, str(cloud_err)))
         except Exception as exc:
-            self.fail('Error: failed to get auto scale settings {0} - {1}'.format(self.name, str(exc)))
+            self.log('Error: failed to get auto scale settings {0} - {1}'.format(self.name, str(exc)))
+            return None
 
     def create_or_update_auto_scale(self, param):
         try:
