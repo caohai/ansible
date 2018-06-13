@@ -301,7 +301,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                     maximum=p.get('max_count'),
                                                                     default=p.get('count')),
                                              rules=[ScaleRule(metric_trigger=MetricTrigger(**r),
-                                                              scale_action=ScaleAction(**r)) for r in p.get('rules')],
+                                                              scale_action=ScaleAction(**r)) for r in p.get('rules', [])],
                                              fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
                                                                    start=p.get('fixed_date_start'),
                                                                    end=p.get('fixed_date_end')),
