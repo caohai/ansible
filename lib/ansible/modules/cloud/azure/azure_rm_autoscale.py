@@ -344,10 +344,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
 
     def create_or_update_auto_scale(self, param):
         try:
-            poller = self.monitor_client.autoscale_settings.create_or_update(self.resource_group, self.name, param)
-            instance = self.get_poller_result(poller)
-            self.check_provisioning_state(instance)
-            return instance
+            return self.monitor_client.autoscale_settings.create_or_update(self.resource_group, self.name, param)
         except Exception as exc:
             self.fail("Error creating auto scale settings {0} - {1}".format(self.name, str(exc)))
 
