@@ -289,9 +289,9 @@ class AzureRMAutoScale(AzureRMModuleBase):
                     changed = True
                 if self.enabled != results.enabled:
                     changed = True
-                # profile_result_set = set([profile_to_dict(p, self.target) for p in results.profiles or []])
-                # if profile_result_set != set(self.profiles):
-                #     changed = True
+                profile_result_set = set([str(profile_to_dict(p, self.target)) for p in results.profiles or []])
+                if profile_result_set != set([str(p) for p in self.profiles or []]):
+                    changed = True
                 notification_result_set = set([str(notification_to_dict(n)) for n in results.notifications or []])
                 if notification_result_set != set([str(n) for n in self.notifications or []]):
                     changed = True
