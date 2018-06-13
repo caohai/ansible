@@ -304,7 +304,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                               scale_action=ScaleAction(**r)) for r in p.get('rules', [])],
                                              fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
                                                                    start=p.get('fixed_date_start'),
-                                                                   end=p.get('fixed_date_end')),
+                                                                   end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
                                              recurrence=Recurrence(frequency=p.get('recurrence_frequency'),
                                                                    schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
                                                                                               days=p.get('recurrence_days'),
