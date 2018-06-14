@@ -287,12 +287,12 @@ class AzureRMAutoScale(AzureRMModuleBase):
             resource_name = self.name
 
             # trigger resource should be the setting's target uri as default
-            profiles_spec = list(self.profiles or [])
-            for profile in profiles_spec:
+            for profile in self.profiles or []:
                 for rule in profile.get('rules', []):
-                    rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
-                    rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
-                    rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
+                    rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
+                    rule['time_grain'] = dict(minutes=rule.get('time_grain', 0))
+                    rule['time_window'] = dict(minutes=rule.get('time_window', 0))
+                    rule['cooldown'] = dict(minutes=rule.get('cooldown', 0))
 
             profiles = [AutoscaleProfile(name=p.get('name'),
                                          capacity=ScaleCapacity(minimum=p.get('min_count'),
@@ -308,7 +308,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                                           days=p.get('recurrence_days'),
                                                                                           hours=p.get('recurrence_hours'),
                                                                                           minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
-                                        ) for p in profiles_spec]
+                                        ) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
                                                    webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
