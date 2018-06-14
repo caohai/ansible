@@ -83,6 +83,7 @@ id:
 '''  # NOQA
 
 from ansible.module_utils.azure_rm_common import AzureRMModuleBase, format_resource_id
+from datetime import timedelta
 
 try:
     from msrestazure.tools import parse_resource_id
@@ -94,17 +95,23 @@ except ImportError:
     pass
 
 
+def timedelta_to_minutes(time):
+    if not time:
+        return 0
+    return time.days * 1440 + time.seconds / 60.0 + time.microseconds / 60000000.0
+
+
 def auto_scale_to_dict(instance):
     if not instance:
         return dict()
     return dict(
-        id=instance.id,
-        name=instance.name,
-        location=instance.location,
+        id=to_native(instance.id or ''),
+        name=to_native(instance.name),
+        location=to_native(instance.location),
         profiles=[profile_to_dict(p) for p in instance.profiles or []],
         notifications=[notification_to_dict(n) for n in instance.notifications or []],
         enabled=instance.enabled,
-        target=instance.target_resource_uri,
+        target=to_native(instance.target_resource_uri),
         tags=instance.tags
     )
 
@@ -114,9 +121,9 @@ def rule_to_dict(rule):
         return dict()
     result = dict(metric_name=to_native(rule.metric_trigger.metric_name),
                   metric_resource_uri=to_native(rule.metric_trigger.metric_resource_uri),
-                  time_grain=to_native(rule.metric_trigger.time_grain),
+                  time_grain=timedelta_to_minutes(rule.metric_trigger.time_grain),
                   statistic=to_native(rule.metric_trigger.statistic.value),
-                  time_window=to_native(rule.metric_trigger.time_window),
+                  time_window=timedelta_to_minutes(rule.metric_trigger.time_window),
                   time_aggregation=to_native(rule.metric_trigger.time_aggregation.value),
                   operator=to_native(rule.metric_trigger.operator.value),
                   threshold=float(rule.metric_trigger.threshold))
@@ -124,7 +131,7 @@ def rule_to_dict(rule):
         result['direction'] = to_native(rule.scale_action.direction.value)
         result['type'] = to_native(rule.scale_action.type.value)
         result['value'] = to_native(rule.scale_action.value)
-        result['cooldown'] = to_native(rule.scale_action.cooldown)
+        result['cooldown'] = timedelta_to_minutes(rule.scale_action.cooldown)
     return result
 
 def profile_to_dict(profile):
@@ -165,19 +172,19 @@ def notification_to_dict(notification):
 rule_spec=dict(
     metric_name=dict(type='str', required=True),
     metric_resource_uri=dict(type='str'),
-    time_grain=dict(type='str', required=True, default='PT1M'),
+    time_grain=dict(type='float', required=True),
     statistic=dict(type='str', required=True, choices=['Average', 'Min', 'Max', 'Sum'], default='Average'),
-    time_window=dict(type='str', required=True, default='PT10M'),
+    time_window=dict(type='float', required=True),
     time_aggregation=dict(type='str', required=True, choices=['Average', 'Minimum', 'Maximum', 'Total', 'Count'], default='Average'),
     operator=dict(type='str',
                   required=True,
                   choices=['Equals', 'NotEquals', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual'],
                   default='GreaterThan'),
     threshold=dict(type='float', required=True, default=70),
-    direction=dict(type='str', choices=['None', 'Increase', 'Decrease'], default='None'),
-    type=dict(type='str', choices=['PercentChangeCount', 'ExactCount', 'ChangeCount'], default='ChangeCount'),
+    direction=dict(type='str', choices=['Increase', 'Decrease']),
+    type=dict(type='str', choices=['PercentChangeCount', 'ExactCount', 'ChangeCount']),
     value=dict(type='str'),
-    cooldown=dict(type='str', default='PT5M')
+    cooldown=dict(type='float')
 )
 
 
@@ -186,7 +193,7 @@ profile_spec=dict(
     count=dict(type='str', required=True),
     max_count=dict(type='str'),
     min_count=dict(type='str'),
-    rules=dict(type='list', default='[]', elements='dict', options=rule_spec),
+    rules=dict(type='list', elements='dict', options=rule_spec),
     fixed_date_timezone=dict(type='str'),
     fixed_date_start=dict(type='str'),
     fixed_date_end=dict(type='str'),
@@ -280,6 +287,9 @@ class AzureRMAutoScale(AzureRMModuleBase):
                 profile['max_count'] = profile.get('count')
             for rule in profile.get('rules', []):
                 rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
+                rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
+                rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
+                rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
 
         self.log('Fetching auto scale settings {0}'.format(self.name))
         results = self.get_auto_scale()
@@ -289,6 +299,25 @@ class AzureRMAutoScale(AzureRMModuleBase):
             if not self.check_mode:
                 self.delete_auto_scale()
         elif self.state == 'present':
+            profiles = [AutoscaleProfile(name=p.get('name'),
+                                         capacity=ScaleCapacity(minimum=p.get('min_count'),
+                                                                maximum=p.get('max_count'),
+                                                                default=p.get('count')),
+                                         rules=[ScaleRule(metric_trigger=MetricTrigger(**r),
+                                                          scale_action=ScaleAction(**r)) for r in p.get('rules', [])],
+                                         fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
+                                                               start=p.get('fixed_date_start'),
+                                                               end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
+                                         recurrence=Recurrence(frequency=p.get('recurrence_frequency'),
+                                                               schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
+                                                                                          days=p.get('recurrence_days'),
+                                                                                          hours=p.get('recurrence_hours'),
+                                                                                          minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
+                                        ) for p in self.profiles or []]
+
+            notifications = [AutoscaleNotification(email=EmailNotification(**n),
+                                                   webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
+
             if not results:
                 # create new
                 changed = True
@@ -304,32 +333,13 @@ class AzureRMAutoScale(AzureRMModuleBase):
                 if self.enabled != results.enabled:
                     changed = True
                 profile_result_set = set([str(profile_to_dict(p)) for p in results.profiles or []])
-                if profile_result_set != set([str(p) for p in self.profiles or []]):
+                if profile_result_set != set([str(p) for p in profiles]):
                     changed = True
                 notification_result_set = set([str(notification_to_dict(n)) for n in results.notifications or []])
-                if notification_result_set != set([str(n) for n in self.notifications or []]):
+                if notification_result_set != set([str(n) for n in notifications]):
                     changed = True
             if changed:
                 # construct the instance will be send to create_or_update api
-                profiles = [AutoscaleProfile(name=p.get('name'),
-                                             capacity=ScaleCapacity(minimum=p.get('min_count'),
-                                                                    maximum=p.get('max_count'),
-                                                                    default=p.get('count')),
-                                             rules=[ScaleRule(metric_trigger=MetricTrigger(**r),
-                                                              scale_action=ScaleAction(**r)) for r in p.get('rules', [])],
-                                             fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
-                                                                   start=p.get('fixed_date_start'),
-                                                                   end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
-                                             recurrence=Recurrence(frequency=p.get('recurrence_frequency'),
-                                                                   schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
-                                                                                              days=p.get('recurrence_days'),
-                                                                                              hours=p.get('recurrence_hours'),
-                                                                                              minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
-                                            ) for p in self.profiles or []]
-
-                notifications = [AutoscaleNotification(email=EmailNotification(**n),
-                                                       webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
-
                 results = AutoscaleSettingResource(location=self.location,
                                                    tags=self.tags,
                                                    profiles=profiles,
