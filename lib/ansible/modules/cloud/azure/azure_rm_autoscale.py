@@ -211,8 +211,8 @@ profile_spec=dict(
 
 
 notification_spec=dict(
-    send_to_subscription_administrator=dict(type='bool', default=False),
-    send_to_subscription_co_administrators=dict(type='bool', default=False),
+    send_to_subscription_administrator=dict(type='bool', aliases=['email_admin'], default=False),
+    send_to_subscription_co_administrators=dict(type='bool', aliases=['email_co_admin'], default=False),
     custom_emails=dict(type='list', elements='str'),
     webhooks=dict(type='list', elements='str')
 )
@@ -228,9 +228,9 @@ class AzureRMAutoScale(AzureRMModuleBase):
             state=dict(type='str', default='present', choices=['present', 'absent']),
             location=dict(type='str'),
             target=dict(type='raw'),
-            profiles=dict(type='list', elements=dict, options=profile_spec),
+            profiles=dict(type='list', elements='dict', options=profile_spec),
             enabled=dict(type=bool),
-            notifications=dict(type='list', elements=dict, options=notification_spec)
+            notifications=dict(type='list', elements='dict', options=notification_spec)
         )
 
         self.results = dict(
