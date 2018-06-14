@@ -271,6 +271,10 @@ class AzureRMAutoScale(AzureRMModuleBase):
 
         # trigger resource should be the setting's target uri as default
         for profile in self.profiles or []:
+            if not profile.get('min_count'):
+                profile['min_count'] = profile.get('count')
+            if not profile.get('max_count'):
+                profile['max_count'] = profile.get('count')
             for rule in profile.get('rules', []):
                 rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
 
