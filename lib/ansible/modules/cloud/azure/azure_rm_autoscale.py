@@ -286,20 +286,19 @@ class AzureRMAutoScale(AzureRMModuleBase):
             self.target = resource_id
             resource_name = self.name
 
-            # trigger resource should be the setting's target uri as default
-            for profile in self.profiles or []:
-                for rule in profile.get('rules', []):
-                    rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
-                    rule['time_grain'] = dict(minutes=rule.get('time_grain', 0))
-                    rule['time_window'] = dict(minutes=rule.get('time_window', 0))
-                    rule['cooldown'] = dict(minutes=rule.get('cooldown', 0))
+            def create_rule_instance(params):
+                rule = params.copy()
+                rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
+                rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
+                rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
+                rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
+                return ScaleRule(metric_trigger=MetricTrigger(**rule), scale_action=ScaleAction(**rule))
 
             profiles = [AutoscaleProfile(name=p.get('name'),
                                          capacity=ScaleCapacity(minimum=p.get('min_count'),
                                                                 maximum=p.get('max_count'),
                                                                 default=p.get('count')),
-                                         rules=[ScaleRule(metric_trigger=MetricTrigger(**r),
-                                                          scale_action=ScaleAction(**r)) for r in p.get('rules', [])],
+                                         rules=[create_rule_instance(r) for r in p.get('rules', [])],
                                          fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
                                                                start=p.get('fixed_date_start'),
                                                                end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
