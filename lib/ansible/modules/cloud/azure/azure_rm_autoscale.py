@@ -308,7 +308,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                         ) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
-                                                   webhooks=[WebhookNotification(service_uri=w) for w in n.get('webhooks', [])]) for n in self.notifications or []]
+                                                   webhooks=[WebhookNotification(service_uri=w) for w in n.get('webhooks'), or []]) for n in self.notifications or []]
 
             if not results:
                 # create new
