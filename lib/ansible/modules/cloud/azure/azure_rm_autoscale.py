@@ -22,7 +22,6 @@ description:
     - Create, delete an image from virtual machine, blob uri, managed disk or snapshot.
 options:
     target:
-        type: raw
         description:
         - The resource identifier of the resource that the autoscale setting should be added to.
         - It can be the resource id of the resource.
@@ -35,8 +34,7 @@ options:
         description: Specifies whether automatic scaling is enabled for the resource.
         default: true
     profiles:
-        type: list
-        description: 
+        description:
         - the collection of automatic scaling profiles that specify different scaling parameters for different time periods.
         - A maximum of 20 profiles can be specified.
         suboptions:
@@ -45,7 +43,7 @@ options:
                 description: the name of the profile.
             count:
                 required: true
-                description: 
+                description:
                 - The number of instances that will be set if metrics are not available for evaluation.
                 - The default is only used if the current instance count is lower than the default.
             min_count:
@@ -72,34 +70,30 @@ options:
                 - the timezone of repeating times at which this profile begins.
                 - This element is not used if the FixedDate element is used.
             recurrence_days:
-                type: list
                 description:
                 - the days of repeating times at which this profile begins.
                 - This element is not used if the FixedDate element is used.
             recurrence_hours:
-                type: list
                 description:
                 - the hours of repeating times at which this profile begins.
                 - This element is not used if the FixedDate element is used.
             recurrence_mins:
-                type: list
                 description:
                 - the mins of repeating times at which this profile begins.
                 - This element is not used if the FixedDate element is used.
             fixed_date_timezone:
                 description:
-                - the specific date-time timezone for the profile. 
+                - the specific date-time timezone for the profile.
                 - This element is not used if the Recurrence element is used.
             fixed_date_start:
                 description:
-                - the specific date-time start for the profile. 
+                - the specific date-time start for the profile.
                 - This element is not used if the Recurrence element is used.
             fixed_date_end:
-                description: 
-                - the specific date-time end for the profile. 
+                description:
+                - the specific date-time end for the profile.
                 - This element is not used if the Recurrence element is used.
             rules:
-                type: list
                 description:
                 - The collection of rules that provide the triggers and parameters for the scaling action.
                 - A maximum of 10 rules can be specified.
@@ -115,7 +109,6 @@ options:
                         - Count
                     time_window:
                         required: true
-                        type: float
                         description:
                         - The range of time(minutes) in which instance data is collected.
                         - This value must be greater than the delay in metric collection, which can vary from resource-to-resource.
@@ -131,7 +124,7 @@ options:
                     metric_resource_uri:
                         description: The resource identifier of the resource the rule monitors.
                     value:
-                        description: 
+                        description:
                     operator:
                         default: GreaterThan
                         description: The operator that is used to compare the metric data and the threshold.
@@ -143,14 +136,12 @@ options:
                         - LessThan
                         - LessThanOrEqual
                     cooldown:
-                        type: float
                         description:
                         - the amount of time (minutes) to wait since the last scaling action before this action occurs.
                         - It must be between 1 ~ 10080.
                     time_grain:
                         required: true
-                        type: float
-                        description: 
+                        description:
                         - The granularity(minutes) of metrics the rule monitors.
                         - Must be one of the predefined values returned from metric definitions for the metric.
                         - Must be between 1 ~ 720.
@@ -164,7 +155,6 @@ options:
                         - Sum
                     threshold:
                         default: 70
-                        type: float
                         description: The threshold of the metric that triggers the scale action.
                     type:
                         description:  The type of action that should occur when the scale rule fires.
@@ -173,18 +163,15 @@ options:
                         - ExactCount
                         - ChangeCount
     notifications:
-        type: list
         description: the collection of notifications.
         suboptions:
             custom_emails:
-                type: list
                 description: the custom e-mails list. This value can be null or empty, in which case this attribute will be ignored.
             send_to_subscription_administrator:
                 type: bool
                 description: A value indicating whether to send email to subscription administrator.
             webhooks:
-                type: list
-                description: The collection of webhook notifications service uri.
+                description: The list of webhook notifications service uri.
             send_to_subscription_co_administrators:
                 type: bool
                 description: A value indicating whether to send email to subscription co-administrators.
@@ -342,7 +329,8 @@ from datetime import timedelta
 try:
     from msrestazure.tools import parse_resource_id
     from msrestazure.azure_exceptions import CloudError
-    from azure.mgmt.monitor.models import (WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule)
+    from azure.mgmt.monitor.models import (WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, \
+                                           ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule)
     from ansible.module_utils._text import to_native
 except ImportError:
     # This is handled in azure_rm_common
@@ -402,21 +390,21 @@ def profile_to_dict(profile):
                   count=to_native(profile.capacity.default),
                   max_count=to_native(profile.capacity.maximum),
                   min_count=to_native(profile.capacity.minimum))
-    
+
     if profile.rules:
         result['rules'] = [rule_to_dict(r) for r in profile.rules]
     if profile.fixed_date:
-        result['fixed_date_timezone']=profile.fixed_date.time_zone
-        result['fixed_date_start']=profile.fixed_date.start
-        result['fixed_date_end']=profile.fixed_date.end
+        result['fixed_date_timezone'] = profile.fixed_date.time_zone
+        result['fixed_date_start'] = profile.fixed_date.start
+        result['fixed_date_end'] = profile.fixed_date.end
     if profile.recurrence:
         if get_enum_value(profile.recurrence.frequency) != 'None':
-            result['recurrence_frequency']=get_enum_value(profile.recurrence.frequency)
+            result['recurrence_frequency'] = get_enum_value(profile.recurrence.frequency)
         if profile.recurrence.schedule:
-            result['recurrence_timezone']=to_native(str(profile.recurrence.schedule.time_zone))
-            result['recurrence_days']= [to_native(r) for r in profile.recurrence.schedule.days]
-            result['recurrence_hours']=[to_native(r) for r in profile.recurrence.schedule.hours]
-            result['recurrence_mins']=[to_native(r) for r in profile.recurrence.schedule.minutes]
+            result['recurrence_timezone'] = to_native(str(profile.recurrence.schedule.time_zone))
+            result['recurrence_days'] = [to_native(r) for r in profile.recurrence.schedule.days]
+            result['recurrence_hours'] = [to_native(r) for r in profile.recurrence.schedule.hours]
+            result['recurrence_mins'] = [to_native(r) for r in profile.recurrence.schedule.minutes]
     return result
 
 
@@ -429,7 +417,7 @@ def notification_to_dict(notification):
                 webhooks=[to_native(w.service_url) for w in notification.webhooks or []])
 
 
-rule_spec=dict(
+rule_spec = dict(
     metric_name=dict(type='str', required=True),
     metric_resource_uri=dict(type='str'),
     time_grain=dict(type='float', required=True),
@@ -447,7 +435,7 @@ rule_spec=dict(
 )
 
 
-profile_spec=dict(
+profile_spec = dict(
     name=dict(type='str', required=True),
     count=dict(type='str', required=True),
     max_count=dict(type='str'),
@@ -464,7 +452,7 @@ profile_spec=dict(
 )
 
 
-notification_spec=dict(
+notification_spec = dict(
     send_to_subscription_administrator=dict(type='bool', aliases=['email_admin'], default=False),
     send_to_subscription_co_administrators=dict(type='bool', aliases=['email_co_admin'], default=False),
     custom_emails=dict(type='list', elements='str'),
@@ -517,7 +505,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
 
         self.log('Fetching auto scale settings {0}'.format(self.name))
         results = self.get_auto_scale()
-        if  results and self.state == 'absent':
+        if results and self.state == 'absent':
             # delete
             changed = True
             if not self.check_mode:
@@ -532,10 +520,10 @@ class AzureRMAutoScale(AzureRMModuleBase):
             resource_id = self.target
             if isinstance(self.target, dict):
                 resource_id = format_resource_id(val=self.target.name,
-                                                subscription_id=self.target.subscription_id or self.subscription_id,
-                                                namespace=self.target.namespace,
-                                                types=self.target.types,
-                                                resource_group=self.target.resource_group or self.resource_group)
+                                                 subscription_id=self.target.subscription_id or self.subscription_id,
+                                                 namespace=self.target.namespace,
+                                                 types=self.target.types,
+                                                 resource_group=self.target.resource_group or self.resource_group)
             self.target = resource_id
             resource_name = self.name
 
@@ -556,14 +544,15 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                start=p.get('fixed_date_start'),
                                                                end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
                                          recurrence=Recurrence(frequency=p.get('recurrence_frequency'),
-                                                               schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
-                                                                                          days=p.get('recurrence_days'),
-                                                                                          hours=p.get('recurrence_hours'),
-                                                                                          minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') else None
-                                        ) for p in self.profiles or []]
+                                                               schedule=(RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
+                                                                                           days=p.get('recurrence_days'),
+                                                                                           hours=p.get('recurrence_hours'),
+                                                                                           minutes=p.get('recurrence_mins')))
+                                                                         if p.get('recurrence_frequency') else None)) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
-                                                   webhooks=[WebhookNotification(service_uri=w) for w in n.get('webhooks') or []]) for n in self.notifications or []]
+                                                   webhooks=[WebhookNotification(service_uri=w) for w in n.get('webhooks') or []])
+                                                             for n in self.notifications or []]
 
             if not results:
                 # create new
