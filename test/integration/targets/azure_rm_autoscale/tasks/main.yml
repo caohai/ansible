@@ -48,7 +48,7 @@
   azure_rm_autoscale:
     resource_group: "{{ resource_group }}"
     name: "{{ name }}"
-    target: "{{ vmss.id }}"
+    target: "{{ vmss.ansible_facts.azure_vmss.id }}"
     enabled: true
     profiles:
     - count: '1'
@@ -74,7 +74,7 @@
   azure_rm_autoscale:
     resource_group: "{{ resource_group }}"
     name: "{{ name }}"
-    target: "{{ vmss.id }}"
+    target: "{{ vmss.ansible_facts.azure_vmss.id }}"
     enabled: true
     profiles:
     - count: '1'
@@ -100,7 +100,7 @@
   azure_rm_autoscale:
     resource_group: "{{ resource_group }}"
     name: "{{ name }}"
-    target: "{{ vmss.id }}"
+    target: "{{ vmss.ansible_facts.azure_vmss.id }}"
     enabled: true
     profiles:
     - count: '1'
@@ -126,7 +126,7 @@
   azure_rm_autoscale:
     resource_group: "{{ resource_group }}"
     name: "{{ name }}"
-    target: "{{ vmss.id }}"
+    target: "{{ vmss.ansible_facts.azure_vmss.id }}"
     enabled: true
     profiles:
     - count: '1'
@@ -138,7 +138,7 @@
         time_window: 10
         direction: Increase
         metric_name: Percentage CPU
-        metric_resource_uri: "{{ vmss.id }}"
+        metric_resource_uri: "{{ vmss.ansible_facts.azure_vmss.id }}"
         value: '1'
         threshold: 70
         cooldown: 5
@@ -159,7 +159,7 @@
 - assert:
     that:
       - output.changed
-      - output.profiles[0].rules[0].metric_resource_uri == vmss.id
+      - output.profiles[0].rules[0].metric_resource_uri == vmss.ansible_facts.azure_vmss.id
 
 - name: delete auto scaling (check mode)
   azure_rm_autoscale:
