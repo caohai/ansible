@@ -88,6 +88,7 @@ try:
     from msrestazure.tools import parse_resource_id
     from msrestazure.azure_exceptions import CloudError
     from azure.mgmt.monitor.models import (WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule)
+    from ansible.module_utils._text import to_native
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -100,7 +101,7 @@ def auto_scale_to_dict(instance):
         id=instance.id,
         name=instance.name,
         location=instance.location,
-        profiles=[profile_to_dict(p, instance.target_resource_uri) for p in instance.profiles or []],
+        profiles=[profile_to_dict(p) for p in instance.profiles or []],
         notifications=[notification_to_dict(n) for n in instance.notifications or []],
         enabled=instance.enabled,
         target=instance.target_resource_uri,
@@ -108,39 +109,45 @@ def auto_scale_to_dict(instance):
     )
 
 
-def rule_to_dict(rule, default_uri):
+def rule_to_dict(rule):
     if not rule:
         return dict()
-    return dict(metric_name=rule.metric_trigger.metric_name if rule.metric_trigger else '',
-                metric_resource_uri=rule.metric_trigger.metric_resource_uri if rule.metric_trigger else default_uri,
-                time_grain=rule.metric_trigger.time_grain if rule.metric_trigger else 'PT1M',
-                statistic=rule.metric_trigger.statistic if rule.metric_trigger else 'Average',
-                time_window=rule.metric_trigger.time_window if rule.metric_trigger else 'PT10M',
-                time_aggregation=rule.metric_trigger.time_aggregation if rule.metric_trigger else 'Average',
-                operator=rule.metric_trigger.operator if rule.metric_trigger else 'GreaterThan',
-                threshold=rule.metric_trigger.threshold if rule.metric_trigger else 70,
-                direction=rule.scale_action.direction if rule.scale_action else 'None',
-                type=rule.scale_action.direction if rule.scale_action else 'ChangeCount',
+    return dict(metric_name=rule.metric_trigger.metric_name if rule.metric_trigger else None,
+                metric_resource_uri=rule.metric_trigger.metric_resource_uri if rule.metric_trigger else None,
+                time_grain=rule.metric_trigger.time_grain if rule.metric_trigger else None,
+                statistic=rule.metric_trigger.statistic if rule.metric_trigger else None,
+                time_window=rule.metric_trigger.time_window if rule.metric_trigger else None,
+                time_aggregation=rule.metric_trigger.time_aggregation if rule.metric_trigger else None,
+                operator=rule.metric_trigger.operator if rule.metric_trigger else None,
+                threshold=rule.metric_trigger.threshold if rule.metric_trigger else None,
+                direction=rule.scale_action.direction if rule.scale_action else None,
+                type=rule.scale_action.direction if rule.scale_action else None,
                 value=rule.scale_action.direction if rule.scale_action else None,
-                cooldown=rule.scale_action.direction if rule.scale_action else 'PT5M')
+                cooldown=rule.scale_action.direction if rule.scale_action else None)
 
 
-def profile_to_dict(profile, default_uri):
+def profile_to_dict(profile):
     if not profile:
         return dict()
-    return dict(name=profile.name,
-                count=profile.capacity.default,
-                max_count=profile.capacity.maximum,
-                min_count=profile.capacity.minimum,
-                rules=[rule_to_dict(r, default_uri) for r in profile.rules],
-                fixed_date_timezone=profile.fixed_date.time_zone if profile.fixed_date else None,
-                fixed_date_start=profile.fixed_date.start if profile.fixed_date else None,
-                fixed_date_end=profile.fixed_date.end if profile.fixed_date else None,
-                recurrence_frequency=str(profile.recurrence.frequency) if profile.recurrence else None,
-                recurrence_timezone=str(profile.recurrence.schedule.time_zone) if profile.recurrence and profile.recurrence.schedule else None,
-                recurrence_days=str(profile.recurrence.schedule.days) if profile.recurrence and profile.recurrence.schedule else None,
-                recurrence_hours=str(profile.recurrence.schedule.hours) if profile.recurrence and profile.recurrence.schedule else None,
-                recurrence_mins=str(profile.recurrence.schedule.minutes) if profile.recurrence and profile.recurrence.schedule else None)
+    result = dict(name=to_native(profile.name),
+                  count=to_native(profile.capacity.default),
+                  max_count=to_native(profile.capacity.maximum),
+                  min_count=to_native(profile.capacity.minimum))
+    
+    if profile.rules:
+        result['rules'] = [rule_to_dict(r) for r in profile.rules]
+    if profile.fixed_date:
+        result['fixed_date_timezone']=profile.fixed_date.time_zone
+        result['fixed_date_start']=profile.fixed_date.start
+        result['fixed_date_end']=profile.fixed_date.end
+    if profile.recurrence:
+        result['recurrence_frequency']=to_native(str(profile.recurrence.frequency))
+        if profile.recurrence.schedule:
+            result['recurrence_timezone']=to_native(str(profile.recurrence.schedule.time_zone))
+            result['recurrence_days']=to_native(str(profile.recurrence.schedule.days))
+            result['recurrence_hours']=to_native(str(profile.recurrence.schedule.hours))
+            result['recurrence_mins']=to_native(str(profile.recurrence.schedule.minutes))
+    return result
 
 
 def notification_to_dict(notification):
@@ -174,9 +181,9 @@ rule_spec=dict(
 
 profile_spec=dict(
     name=dict(type='str', required=True),
-    count=dict(type='int', required=True),
-    max_count=dict(type='int'),
-    min_count=dict(type='int'),
+    count=dict(type='str', required=True),
+    max_count=dict(type='str'),
+    min_count=dict(type='str'),
     rules=dict(type='list', default='[]', elements='dict', options=rule_spec),
     fixed_date_timezone=dict(type='str'),
     fixed_date_start=dict(type='str'),
@@ -289,7 +296,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                     changed = True
                 if self.enabled != results.enabled:
                     changed = True
-                profile_result_set = set([str(profile_to_dict(p, self.target)) for p in results.profiles or []])
+                profile_result_set = set([str(profile_to_dict(p)) for p in results.profiles or []])
                 if profile_result_set != set([str(p) for p in self.profiles or []]):
                     changed = True
                 notification_result_set = set([str(notification_to_dict(n)) for n in results.notifications or []])
