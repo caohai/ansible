@@ -112,19 +112,20 @@ def auto_scale_to_dict(instance):
 def rule_to_dict(rule):
     if not rule:
         return dict()
-    return dict(metric_name=rule.metric_trigger.metric_name if rule.metric_trigger else None,
-                metric_resource_uri=rule.metric_trigger.metric_resource_uri if rule.metric_trigger else None,
-                time_grain=rule.metric_trigger.time_grain if rule.metric_trigger else None,
-                statistic=rule.metric_trigger.statistic if rule.metric_trigger else None,
-                time_window=rule.metric_trigger.time_window if rule.metric_trigger else None,
-                time_aggregation=rule.metric_trigger.time_aggregation if rule.metric_trigger else None,
-                operator=rule.metric_trigger.operator if rule.metric_trigger else None,
-                threshold=rule.metric_trigger.threshold if rule.metric_trigger else None,
-                direction=rule.scale_action.direction if rule.scale_action else None,
-                type=rule.scale_action.direction if rule.scale_action else None,
-                value=rule.scale_action.direction if rule.scale_action else None,
-                cooldown=rule.scale_action.direction if rule.scale_action else None)
-
+    result = dict(metric_name=to_native(rule.metric_trigger.metric_name),
+                  metric_resource_uri=to_native(rule.metric_trigger.metric_resource_uri),
+                  time_grain=to_native(rule.metric_trigger.time_grain),
+                  statistic=to_native(rule.metric_trigger.statistic),
+                  time_window=to_native(rule.metric_trigger.time_window),
+                  time_aggregation=to_native(rule.metric_trigger.time_aggregation),
+                  operator=to_native(rule.metric_trigger.operator),
+                  threshold=float(rule.metric_trigger.threshold))
+    if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
+        result['direction'] = to_native(rule.scale_action.direction)
+        result['type'] = to_native(rule.scale_action.type)
+        result['value'] = to_native(rule.scale_action.value)
+        result['cooldown'] = to_native(rule.scale_action.cooldown)
+    return result
 
 def profile_to_dict(profile):
     if not profile:
@@ -141,12 +142,13 @@ def profile_to_dict(profile):
         result['fixed_date_start']=profile.fixed_date.start
         result['fixed_date_end']=profile.fixed_date.end
     if profile.recurrence:
-        result['recurrence_frequency']=to_native(str(profile.recurrence.frequency))
+        if to_native(profile.recurrence.frequency.value) != 'None':
+            result['recurrence_frequency']=to_native(profile.recurrence.frequency.value)
         if profile.recurrence.schedule:
             result['recurrence_timezone']=to_native(str(profile.recurrence.schedule.time_zone))
-            result['recurrence_days']=to_native(str(profile.recurrence.schedule.days))
-            result['recurrence_hours']=to_native(str(profile.recurrence.schedule.hours))
-            result['recurrence_mins']=to_native(str(profile.recurrence.schedule.minutes))
+            result['recurrence_days']= [to_native(r) for r in profile.recurrence.schedule.days]
+            result['recurrence_hours']=[to_native(r) for r in profile.recurrence.schedule.hours]
+            result['recurrence_mins']=[to_native(r) for r in profile.recurrence.schedule.minutes]
     return result
 
 
@@ -190,9 +192,9 @@ profile_spec=dict(
     fixed_date_end=dict(type='str'),
     recurrence_frequency=dict(type='str', choices=['None', 'Second', 'Minute', 'Hour', 'Day', 'Week', 'Month', 'Year'], default='None'),
     recurrence_timezone=dict(type='str'),
-    recurrence_days=dict(type='list', elements='int'),
-    recurrence_hours=dict(type='list', elements='int'),
-    recurrence_mins=dict(type='list', elements='int')
+    recurrence_days=dict(type='list', elements='str'),
+    recurrence_hours=dict(type='list', elements='str'),
+    recurrence_mins=dict(type='list', elements='str')
 )
 
 
