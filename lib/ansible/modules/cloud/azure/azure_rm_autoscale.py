@@ -211,8 +211,8 @@ profile_spec=dict(
 
 
 notification_spec=dict(
-    send_to_subscription_administrator=dict(type='bool', aliases=['email_admin'], default=False),
-    send_to_subscription_co_administrators=dict(type='bool', aliases=['email_co_admin'], default=False),
+    send_to_subscription_administrator=dict(type='bool', default=False),
+    send_to_subscription_co_administrators=dict(type='bool', default=False),
     custom_emails=dict(type='list', elements='str'),
     webhooks=dict(type='list', elements='str')
 )
