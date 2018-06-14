@@ -170,9 +170,9 @@ def notification_to_dict(notification):
         return dict()
     return dict(send_to_subscription_administrator=notification.email.send_to_subscription_administrator if notification.email else False,
                 send_to_subscription_co_administrators=notification.email.send_to_subscription_co_administrators if notification.email else False,
-                custom_emails=notification.email.custom_emails if notification.email else None,
+                custom_emails=notification.email.custom_emails if notification.email else [],
                 webhooks=[dict(service_url=w.service_url,
-                               properties=w.properties) for w in notification.webhooks] if notification.webhooks else None)
+                               properties=w.properties) for w in notification.webhooks] if notification.webhooks else [])
 
 
 rule_spec=dict(
@@ -218,8 +218,8 @@ webhook_spec=dict(
 
 
 notification_spec=dict(
-    send_to_subscription_administrator=dict(type='bool', alias=['enable_admin']),
-    send_to_subscription_co_administrators=dict(type='bool', alias=['enable_co_admin'],),
+    send_to_subscription_administrator=dict(type='bool', alias=['email_admin']),
+    send_to_subscription_co_administrators=dict(type='bool', alias=['email_co_admin'],),
     custom_emails=dict(type='list', elements='str'),
     webhooks=dict(type='list', elements='dict', options=webhook_spec)
 )
@@ -316,7 +316,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                         ) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
-                                                   webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
+                                                   webhooks=[WebhookNotification(**w) for w in n.get('webhooks', [])]) for n in self.notifications or []]
 
             if not results:
                 # create new
