@@ -287,7 +287,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
             resource_name = self.name
 
             # trigger resource should be the setting's target uri as default
-            profiles_spec = self.profiles.copy if self.profiles else []
+            profiles_spec = self.profiles[:] if self.profiles else []
             for profile in profiles_spec:
                 for rule in profile.get('rules', []):
                     rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
