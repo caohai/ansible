@@ -84,7 +84,6 @@ id:
 
 from ansible.module_utils.azure_rm_common import AzureRMModuleBase, format_resource_id
 from datetime import timedelta
-from enum import Enum
 
 try:
     from msrestazure.tools import parse_resource_id
@@ -103,9 +102,9 @@ def timedelta_to_minutes(time):
 
 
 def get_enum_value(item):
-    if isinstance(item, Enum):
-        return to_native(item)
-    return to_native(item.value)
+    if 'value' in dir(item):
+        return to_native(item.value)
+    return to_native(item)
 
 
 def auto_scale_to_dict(instance):
