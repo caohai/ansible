@@ -130,9 +130,9 @@ def profile_to_dict(profile):
     if not profile:
         return dict()
     result = dict(name=to_native(profile.name),
-                  count=int(profile.capacity.default),
-                  max_count=int(profile.capacity.maximum),
-                  min_count=int(profile.capacity.minimum))
+                  count=to_native(profile.capacity.default),
+                  max_count=to_native(profile.capacity.maximum),
+                  min_count=to_native(profile.capacity.minimum))
     
     if profile.rules:
         result['rules'] = [rule_to_dict(r) for r in profile.rules]
@@ -181,9 +181,9 @@ rule_spec=dict(
 
 profile_spec=dict(
     name=dict(type='str', required=True),
-    count=dict(type='int', required=True),
-    max_count=dict(type='int'),
-    min_count=dict(type='int'),
+    count=dict(type='str', required=True),
+    max_count=dict(type='str'),
+    min_count=dict(type='str'),
     rules=dict(type='list', default='[]', elements='dict', options=rule_spec),
     fixed_date_timezone=dict(type='str'),
     fixed_date_start=dict(type='str'),
@@ -271,6 +271,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
 
         # trigger resource should be the setting's target uri as default
         for profile in self.profiles or []:
+            profile['count'] = str(profile.get('count'))
             if not profile.get('min_count'):
                 profile['min_count'] = profile.get('count')
             if not profile.get('max_count'):
