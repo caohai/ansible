@@ -115,14 +115,14 @@ def rule_to_dict(rule):
     result = dict(metric_name=to_native(rule.metric_trigger.metric_name),
                   metric_resource_uri=to_native(rule.metric_trigger.metric_resource_uri),
                   time_grain=to_native(rule.metric_trigger.time_grain),
-                  statistic=to_native(rule.metric_trigger.statistic),
+                  statistic=to_native(rule.metric_trigger.statistic.value),
                   time_window=to_native(rule.metric_trigger.time_window),
-                  time_aggregation=to_native(rule.metric_trigger.time_aggregation),
-                  operator=to_native(rule.metric_trigger.operator),
+                  time_aggregation=to_native(rule.metric_trigger.time_aggregation.value),
+                  operator=to_native(rule.metric_trigger.operator.value),
                   threshold=float(rule.metric_trigger.threshold))
     if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
-        result['direction'] = to_native(rule.scale_action.direction)
-        result['type'] = to_native(rule.scale_action.type)
+        result['direction'] = to_native(rule.scale_action.direction.value)
+        result['type'] = to_native(rule.scale_action.type.value)
         result['value'] = to_native(rule.scale_action.value)
         result['cooldown'] = to_native(rule.scale_action.cooldown)
     return result
