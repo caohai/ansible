@@ -21,24 +21,185 @@ short_description: Manage Azure image.
 description:
     - Create, delete an image from virtual machine, blob uri, managed disk or snapshot.
 options:
+    target:
+        type: raw
+        description:
+        - The resource identifier of the resource that the autoscale setting should be added to.
+        - It can be the resource id of the resource.
+        - It also can be a dict contains the C(name), C(subscription_id), C(namespace), C(types), C(resource_group) of the resource.
     resource_group:
-        description:
-            - Name of resource group.
         required: true
-    name:
-        description:
-            - Name of the image.
-        required: true
-    location:
-        description:
-            - Location of the image. Derived from I(resource_group) if not specified.
+        description: resource group of the resource.
+    enabled:
+        type: bool
+        description: Specifies whether automatic scaling is enabled for the resource.
+        default: true
+    profiles:
+        type: list
+        description: 
+        - the collection of automatic scaling profiles that specify different scaling parameters for different time periods.
+        - A maximum of 20 profiles can be specified.
+        suboptions:
+            name:
+                required: true
+                description: the name of the profile.
+            count:
+                required: true
+                description: 
+                - The number of instances that will be set if metrics are not available for evaluation.
+                - The default is only used if the current instance count is lower than the default.
+            min_count:
+                description: the minimum number of instances for the resource.
+            max_count:
+                description: the maximum number of instances for the resource.
+            recurrence_frequency:
+                default: None
+                description:
+                - How often the schedule profile should take effect.
+                - If this value is Week, meaning each week will have the same set of profiles.
+                - This element is not used if the FixedDate element is used.
+                choices:
+                - None
+                - Second
+                - Minute
+                - Hour
+                - Day
+                - Week
+                - Month
+                - Year
+            recurrence_timezone:
+                description:
+                - the timezone of repeating times at which this profile begins.
+                - This element is not used if the FixedDate element is used.
+            recurrence_days:
+                type: list
+                description:
+                - the days of repeating times at which this profile begins.
+                - This element is not used if the FixedDate element is used.
+            recurrence_hours:
+                type: list
+                description:
+                - the hours of repeating times at which this profile begins.
+                - This element is not used if the FixedDate element is used.
+            recurrence_mins:
+                type: list
+                description:
+                - the mins of repeating times at which this profile begins.
+                - This element is not used if the FixedDate element is used.
+            fixed_date_timezone:
+                description:
+                - the specific date-time timezone for the profile. 
+                - This element is not used if the Recurrence element is used.
+            fixed_date_start:
+                description:
+                - the specific date-time start for the profile. 
+                - This element is not used if the Recurrence element is used.
+            fixed_date_end:
+                description: 
+                - the specific date-time end for the profile. 
+                - This element is not used if the Recurrence element is used.
+            rules:
+                type: list
+                description:
+                - The collection of rules that provide the triggers and parameters for the scaling action.
+                - A maximum of 10 rules can be specified.
+                suboptions:
+                    time_aggregation:
+                        default: Average
+                        description: How the data that is collected should be combined over time.
+                        choices:
+                        - Average
+                        - Minimum
+                        - Maximum
+                        - Total
+                        - Count
+                    time_window:
+                        required: true
+                        type: float
+                        description:
+                        - The range of time(minutes) in which instance data is collected.
+                        - This value must be greater than the delay in metric collection, which can vary from resource-to-resource.
+                        - Must be between 5 ~ 720.
+                    direction:
+                        description: Whether the scaling action increases or decreases the number of instances.
+                        choices:
+                        - Increase
+                        - Decrease
+                    metric_name:
+                        required: true
+                        description: The name of the metric that defines what the rule monitors.
+                    metric_resource_uri:
+                        description: The resource identifier of the resource the rule monitors.
+                    value:
+                        description: 
+                    operator:
+                        default: GreaterThan
+                        description: The operator that is used to compare the metric data and the threshold.
+                        choices:
+                        - Equals
+                        - NotEquals
+                        - GreaterThan
+                        - GreaterThanOrEqual
+                        - LessThan
+                        - LessThanOrEqual
+                    cooldown:
+                        type: float
+                        description:
+                        - the amount of time (minutes) to wait since the last scaling action before this action occurs.
+                        - It must be between 1 ~ 10080.
+                    time_grain:
+                        required: true
+                        type: float
+                        description: 
+                        - The granularity(minutes) of metrics the rule monitors.
+                        - Must be one of the predefined values returned from metric definitions for the metric.
+                        - Must be between 1 ~ 720.
+                    statistic:
+                        default: Average
+                        description: How the metrics from multiple instances are combined.
+                        choices:
+                        - Average
+                        - Min
+                        - Max
+                        - Sum
+                    threshold:
+                        default: 70
+                        type: float
+                        description: The threshold of the metric that triggers the scale action.
+                    type:
+                        description:  The type of action that should occur when the scale rule fires.
+                        choices:
+                        - PercentChangeCount
+                        - ExactCount
+                        - ChangeCount
+    notifications:
+        type: list
+        description: the collection of notifications.
+        suboptions:
+            custom_emails:
+                type: list
+                description: the custom e-mails list. This value can be null or empty, in which case this attribute will be ignored.
+            send_to_subscription_administrator:
+                type: bool
+                description: A value indicating whether to send email to subscription administrator.
+            webhooks:
+                type: list
+                description: The collection of webhook notifications service uri.
+            send_to_subscription_co_administrators:
+                type: bool
+                description: A value indicating whether to send email to subscription co-administrators.
     state:
-        description:
-            - Assert the state of the image. Use C(present) to create or update a image and C(absent) to delete an image.
         default: present
+        description: Assert the state of the virtual network. Use 'present' to create or update and 'absent' to delete.
         choices:
-            - absent
-            - present
+        - present
+        - absent
+    location:
+        description: location of the resource.
+    name:
+        required: true
+        description: name of the resource.
+
 
 extends_documentation_fragment:
     - azure
@@ -50,36 +211,129 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Create an image from a virtual machine
+- name: Create an auto scale
   azure_rm_autoscale:
-    resource_group: Testing
-    name: foobar
-    source: testvm001
+      target: "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/Microsoft.Compute/virtualMachineScaleSets/vmss"
+      enabled: true
+      profiles:
+      - count: '1'
+        recurrence_days:
+        - Monday
+        name: Auto created scale condition
+        recurrence_timezone: China Standard Time
+        recurrence_mins:
+        - '0'
+        min_count: '1'
+        max_count: '1'
+        recurrence_frequency: Week
+        recurrence_hours:
+        - '18'
+      name: scale
+      resource_group: foo
 
-- name: Create an image from os disk
+- name: Create an auto scale with compicated profile
   azure_rm_autoscale:
-    resource_group: Testing
-    name: foobar
-    source: /subscriptions/XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX/resourceGroups/Testing/providers/Microsoft.Compute/disks/disk001
-    data_disk_sources:
-        - datadisk001
-        - datadisk002
-    os_type: Linux
+      target: "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/Microsoft.Compute/virtualMachineScaleSets/vmss"
+      enabled: true
+      profiles:
+      - count: '1'
+        recurrence_days:
+        - Monday
+        name: Auto created scale condition 0
+        rules:
+        - time_aggregation: Average
+          time_window: 10
+          direction: Increase
+          metric_name: Percentage CPU
+          metric_resource_uri: "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/Microsoft.Compute/virtualMachineScaleSets/vmss"
+          value: '1'
+          threshold: 70
+          cooldown: 5
+          time_grain: 1
+          statistic: Average
+          operator: GreaterThan
+          type: ChangeCount
+        max_count: '1'
+        recurrence_mins:
+        - '0'
+        min_count: '1'
+        recurrence_timezone: China Standard Time
+        recurrence_frequency: Week
+        recurrence_hours:
+        - '6'
+      notifications:
+      - email_admin: True
+        email_co_admin: False
+        custom_emails:
+        - yuwzho@microsoft.com
+      name: scale
+      resource_group: foo
 
 - name: Delete an image
   azure_rm_autoscale:
     state: absent
-    resource_group: Testing
-    name: foobar
-    source: testvm001
+    resource_group: foo
+    name: scale
 '''
 
 RETURN = '''
-id:
-    description: Image resource path.
-    type: str
-    returned: success
-    example: "/subscriptions/XXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX/resourceGroups/Testing/providers/Microsoft.Compute/images/foobar"
+state:
+    description: Current state of the resource.
+    returned: always
+    type: dict
+    sample: {
+        "changed": false,
+        "enabled": true,
+        "id": "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/microsoft.insights/autoscalesettings/scale",
+        "location": "eastus",
+        "name": "scale",
+        "notifications": [
+            {
+                "custom_emails": [
+                    "yuwzho@microsoft.com"
+                ],
+                "send_to_subscription_administrator": true,
+                "send_to_subscription_co_administrators": false,
+                "webhooks": []
+            }
+        ],
+        "profiles": [
+            {
+                "count": "1",
+                "max_count": "1",
+                "min_count": "1",
+                "name": "Auto created scale condition 0",
+                "recurrence_days": [
+                    "Monday"
+                ],
+                "recurrence_frequency": "Week",
+                "recurrence_hours": [
+                    "6"
+                ],
+                "recurrence_mins": [
+                    "0"
+                ],
+                "recurrence_timezone": "China Standard Time",
+                "rules": [
+                    {
+                        "cooldown": 5.0,
+                        "direction": "Increase",
+                        "metric_name": "Percentage CPU",
+                        "metric_resource_uri": "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/Microsoft.Compute/virtualMachineScaleSets/vmss",
+                        "operator": "GreaterThan",
+                        "statistic": "Average",
+                        "threshold": 70.0,
+                        "time_aggregation": "Average",
+                        "time_grain": 1.0,
+                        "time_window": 10.0,
+                        "type": "ChangeCount",
+                        "value": "1"
+                    }
+                ]
+            }
+        ],
+        "target": "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/foo/providers/Microsoft.Compute/virtualMachineScaleSets/vmss"
+    }
 '''  # NOQA
 
 from ansible.module_utils.azure_rm_common import AzureRMModuleBase, format_resource_id
@@ -139,6 +393,7 @@ def rule_to_dict(rule):
         result['value'] = to_native(rule.scale_action.value)
         result['cooldown'] = timedelta_to_minutes(rule.scale_action.cooldown)
     return result
+
 
 def profile_to_dict(profile):
     if not profile:
@@ -228,7 +483,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
             location=dict(type='str'),
             target=dict(type='raw'),
             profiles=dict(type='list', elements='dict', options=profile_spec),
-            enabled=dict(type=bool),
+            enabled=dict(type='bool', default=True),
             notifications=dict(type='list', elements='dict', options=notification_spec)
         )
 
