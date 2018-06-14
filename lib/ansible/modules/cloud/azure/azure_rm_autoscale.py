@@ -136,7 +136,7 @@ def rule_to_dict(rule):
     if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
         result['direction'] = get_enum_value(rule.scale_action.direction)
         result['type'] = get_enum_value(rule.scale_action.type)
-        result['value'] = to_native(rule.scale_action)
+        result['value'] = to_native(rule.scale_action.value)
         result['cooldown'] = timedelta_to_minutes(rule.scale_action.cooldown)
     return result
 
