@@ -296,7 +296,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                          capacity=ScaleCapacity(minimum=p.get('min_count'),
                                                                 maximum=p.get('max_count'),
                                                                 default=p.get('count')),
-                                         rules=[create_rule_instance(r) for r in p.get('rules', [])],
+                                         rules=[create_rule_instance(r) for r in p.get('rules') or []],
                                          fixed_date=TimeWindow(time_zone=p.get('fixed_date_timezone'),
                                                                start=p.get('fixed_date_start'),
                                                                end=p.get('fixed_date_end')) if p.get('fixed_date_timezone') else None,
@@ -304,7 +304,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                schedule=RecurrentSchedule(time_zone=p.get('recurrence_timezone'),
                                                                                           days=p.get('recurrence_days'),
                                                                                           hours=p.get('recurrence_hours'),
-                                                                                          minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
+                                                                                          minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') else None
                                         ) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
