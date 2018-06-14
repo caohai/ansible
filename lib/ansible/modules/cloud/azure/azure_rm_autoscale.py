@@ -101,6 +101,12 @@ def timedelta_to_minutes(time):
     return time.days * 1440 + time.seconds / 60.0 + time.microseconds / 60000000.0
 
 
+def get_enum_value(item):
+    if isinstance(item, str):
+        return to_native(item)
+    return to_native(item.value)
+
+
 def auto_scale_to_dict(instance):
     if not instance:
         return dict()
@@ -122,15 +128,15 @@ def rule_to_dict(rule):
     result = dict(metric_name=to_native(rule.metric_trigger.metric_name),
                   metric_resource_uri=to_native(rule.metric_trigger.metric_resource_uri),
                   time_grain=timedelta_to_minutes(rule.metric_trigger.time_grain),
-                  statistic=to_native(rule.metric_trigger.statistic.value),
+                  statistic=get_enum_value(rule.metric_trigger.statistic),
                   time_window=timedelta_to_minutes(rule.metric_trigger.time_window),
-                  time_aggregation=to_native(rule.metric_trigger.time_aggregation.value),
-                  operator=to_native(rule.metric_trigger.operator.value),
+                  time_aggregation=get_enum_value(rule.metric_trigger.time_aggregation),
+                  operator=get_enum_value(rule.metric_trigger.operator),
                   threshold=float(rule.metric_trigger.threshold))
     if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
-        result['direction'] = to_native(rule.scale_action.direction.value)
-        result['type'] = to_native(rule.scale_action.type.value)
-        result['value'] = to_native(rule.scale_action.value)
+        result['direction'] = get_enum_value(rule.scale_action.direction)
+        result['type'] = get_enum_value(rule.scale_action.type)
+        result['value'] = to_native(rule.scale_action)
         result['cooldown'] = timedelta_to_minutes(rule.scale_action.cooldown)
     return result
 
@@ -149,8 +155,8 @@ def profile_to_dict(profile):
         result['fixed_date_start']=profile.fixed_date.start
         result['fixed_date_end']=profile.fixed_date.end
     if profile.recurrence:
-        if to_native(profile.recurrence.frequency.value) != 'None':
-            result['recurrence_frequency']=to_native(profile.recurrence.frequency.value)
+        if get_enum_value(profile.recurrence.frequency) != 'None':
+            result['recurrence_frequency']=get_enum_value(profile.recurrence.frequency)
         if profile.recurrence.schedule:
             result['recurrence_timezone']=to_native(str(profile.recurrence.schedule.time_zone))
             result['recurrence_days']= [to_native(r) for r in profile.recurrence.schedule.days]
@@ -327,10 +333,10 @@ class AzureRMAutoScale(AzureRMModuleBase):
                 if self.enabled != results.enabled:
                     changed = True
                 profile_result_set = set([str(profile_to_dict(p)) for p in results.profiles or []])
-                if profile_result_set != set([str(p) for p in profiles]):
+                if profile_result_set != set([str(profile_to_dict(p)) for p in profiles]):
                     changed = True
                 notification_result_set = set([str(notification_to_dict(n)) for n in results.notifications or []])
-                if notification_result_set != set([str(n) for n in notifications]):
+                if notification_result_set != set([str(notification_to_dict(n)) for n in notifications]):
                     changed = True
             if changed:
                 # construct the instance will be send to create_or_update api
