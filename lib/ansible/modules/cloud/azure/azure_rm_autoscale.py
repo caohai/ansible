@@ -262,35 +262,6 @@ class AzureRMAutoScale(AzureRMModuleBase):
         results = None
         changed = False
 
-        if not self.location:
-            # Set default location
-            resource_group = self.get_resource_group(self.resource_group)
-            self.location = resource_group.location
-
-        resource_id = self.target
-        if isinstance(self.target, dict):
-            resource_id = format_resource_id(val=self.target.name,
-                                             subscription_id=self.target.subscription_id or self.subscription_id,
-                                             namespace=self.target.namespace,
-                                             types=self.target.types,
-                                             resource_group=self.target.resource_group or self.resource_group)
-        self.target = resource_id
-
-        resource_name = self.name
-
-        # trigger resource should be the setting's target uri as default
-        for profile in self.profiles or []:
-            profile['count'] = str(profile.get('count'))
-            if not profile.get('min_count'):
-                profile['min_count'] = profile.get('count')
-            if not profile.get('max_count'):
-                profile['max_count'] = profile.get('count')
-            for rule in profile.get('rules', []):
-                rule['metric_resource_uri'] = rule.get('metric_resource_uri', self.target)
-                rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
-                rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
-                rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
-
         self.log('Fetching auto scale settings {0}'.format(self.name))
         results = self.get_auto_scale()
         if  results and self.state == 'absent':
@@ -299,6 +270,30 @@ class AzureRMAutoScale(AzureRMModuleBase):
             if not self.check_mode:
                 self.delete_auto_scale()
         elif self.state == 'present':
+
+            if not self.location:
+                # Set default location
+                resource_group = self.get_resource_group(self.resource_group)
+                self.location = resource_group.location
+
+            resource_id = self.target
+            if isinstance(self.target, dict):
+                resource_id = format_resource_id(val=self.target.name,
+                                                subscription_id=self.target.subscription_id or self.subscription_id,
+                                                namespace=self.target.namespace,
+                                                types=self.target.types,
+                                                resource_group=self.target.resource_group or self.resource_group)
+            self.target = resource_id
+            resource_name = self.name
+
+            # trigger resource should be the setting's target uri as default
+            profiles_spec = self.profiles.copy if self.profiles else []
+            for profile in profiles_spec:
+                for rule in profile.get('rules', []):
+                    rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
+                    rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
+                    rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
+
             profiles = [AutoscaleProfile(name=p.get('name'),
                                          capacity=ScaleCapacity(minimum=p.get('min_count'),
                                                                 maximum=p.get('max_count'),
@@ -313,7 +308,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                                           days=p.get('recurrence_days'),
                                                                                           hours=p.get('recurrence_hours'),
                                                                                           minutes=p.get('recurrence_mins'))) if p.get('recurrence_frequency') != 'None' else None
-                                        ) for p in self.profiles or []]
+                                        ) for p in profiles_spec]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
                                                    webhooks=[WebhookNotification(**w) for w in n.get('webhooks')]) for n in self.notifications or []]
