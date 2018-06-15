@@ -329,8 +329,8 @@ from datetime import timedelta
 try:
     from msrestazure.tools import parse_resource_id
     from msrestazure.azure_exceptions import CloudError
-    from azure.mgmt.monitor.models import (WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, \
-                                           ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule)
+    from azure.mgmt.monitor.models import WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, \
+                                          ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule
     from ansible.module_utils._text import to_native
 except ImportError:
     # This is handled in azure_rm_common
@@ -548,11 +548,11 @@ class AzureRMAutoScale(AzureRMModuleBase):
                                                                                            days=p.get('recurrence_days'),
                                                                                            hours=p.get('recurrence_hours'),
                                                                                            minutes=p.get('recurrence_mins')))
-                                                                         if p.get('recurrence_frequency') else None)) for p in self.profiles or []]
+                                                                        if p.get('recurrence_frequency') else None)) for p in self.profiles or []]
 
             notifications = [AutoscaleNotification(email=EmailNotification(**n),
                                                    webhooks=[WebhookNotification(service_uri=w) for w in n.get('webhooks') or []])
-                                                             for n in self.notifications or []]
+                                                            for n in self.notifications or []]
 
             if not results:
                 # create new
