@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2017 Zim Kalinowski, <zikalino@microsoft.com>
+# Copyright (c) 2017 Yuwei Zhou, <yuwzho@microsoft.com>
 #
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -42,6 +42,7 @@ options:
 
 extends_documentation_fragment:
     - azure
+    - azure_tags
 
 author:
     - "Yuwei Zhou (@yuwzho)"
@@ -99,10 +100,11 @@ class AzureRMAutoScaleFacts(AzureRMModuleBase):
         self.resource_group = None
         self.format = None
         self.name = None
+        self.tags = None
         super(AzureRMAutoScaleFacts, self).__init__(self.module_arg_spec)
 
     def exec_module(self, **kwargs):
-        for key in self.module_arg_spec:
+        for key in list(self.module_arg_spec) + ['tags']:
             setattr(self, key, kwargs[key])
 
         if self.resource_group and self.name:
@@ -124,7 +126,7 @@ class AzureRMAutoScaleFacts(AzureRMModuleBase):
         results = []
         try:
             response = self.monitor_client.autoscale_settings.list_by_resource_group(self.resource_group)
-            results = [self.format_item(item) for item in response]
+            results = [self.format_item(item) for item in response if self.has_tags(item.tags, self.tags)]
         except CloudError as e:
             self.log('Could not get facts for autoscale {0} - {1}.'.format(self.name, str(e)))
         return results
