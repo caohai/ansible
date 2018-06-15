@@ -125,6 +125,8 @@ options:
                         description: The resource identifier of the resource the rule monitors.
                     value:
                         description:
+                        - The number of instances that are involved in the scaling action.
+                        - This value must be 1 or greater.
                     operator:
                         default: GreaterThan
                         description: The operator that is used to compare the metric data and the threshold.
