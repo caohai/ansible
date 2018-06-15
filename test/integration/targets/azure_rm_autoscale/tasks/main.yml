@@ -165,10 +165,17 @@
   azure_rm_autoscale_facts:
     resource_group: "{{ resource_group }}"
     name: "{{ name }}"
+    format: curated
   register: facts
 
 - name: use facts to send param to auto scale
-  azure_rm_autoscale: "{{ facts.autoscales[0] }}"
+  azure_rm_autoscale:
+    location: "{{ facts.autoscales[0].location }}"
+    name: "{{ facts.autoscales[0].name }}"
+    notifications: "{{ facts.autoscales[0].notifications }}"
+    profiles: "{{ facts.autoscales[0].profiles }}"
+    target: "{{ facts.autoscales[0].target }}"
+    resource_group: "{{ resource_group }}"
   register: output
 
 - assert:
