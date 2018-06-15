@@ -161,6 +161,20 @@
       - output.changed
       - output.profiles[0].rules[0].metric_resource_uri == vmss.ansible_facts.azure_vmss.id
 
+- name: get auto scaling facts
+  azure_rm_autoscale_facts:
+    resource_group: "{{ resource_group }}"
+    name: "{{ name }}"
+  register: facts
+
+- name: use facts to send param to auto scale
+  azure_rm_autoscale: "{{ facts.autoscales[0] }}"
+  register: output
+
+- assert:
+    that:
+      - not output.changed
+
 - name: delete auto scaling (check mode)
   azure_rm_autoscale:
     resource_group: "{{ resource_group }}"
