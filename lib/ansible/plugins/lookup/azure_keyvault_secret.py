@@ -33,7 +33,8 @@ TOKEN_ACQUIRED = False
 token_params = {'api-version':'2018-02-01','resource':'https://vault.azure.net'}
 token_headers = {'Metadata':'true'}
 token_res = requests.get('http://169.254.169.254/metadata/identity/oauth2/token', params = token_params, headers = token_headers)
-print(token_res.text)
+token = json.load(token_res.text)["access_token"]
+print(token)
 
 class LookupModule(LookupBase):
 
@@ -42,5 +43,6 @@ class LookupModule(LookupBase):
 
         ret = []
         for term in terms:
+            print(term)
             ret.append(term)
         return ret
