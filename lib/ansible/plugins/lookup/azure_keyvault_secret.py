@@ -41,7 +41,12 @@ class LookupModule(LookupBase):
 
 
         ret = []
-        for term in terms:
-            print(term)
-            ret.append(term)
+        #print(terms)
+        #print(kwargs)
+        vault_url = kwargs.pop('vault_url',None)
+        print(vault_url)
+        print(len(terms[0]))
+        for term in terms[0]:
+            ret.append(''.join(term))
+        print(len(ret))
         return ret
