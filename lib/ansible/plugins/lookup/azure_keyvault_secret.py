@@ -52,7 +52,7 @@ class LookupModule(LookupBase):
     def run(self, terms, variables, **kwargs):
 
 
-        ret = {}
+        ret = []
         vault_url = kwargs.pop('vault_url',None)
         if TOKEN_ACQUIRED:
           secret_params = {'api-version':'2016-10-01'}
@@ -60,10 +60,13 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             try:
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
-              ret[term] = secret_res.json()["value"]
+              ret.append(secret_res.json()["value"])
+              #ret[term] = secret_res.json()["value"]
             except:
               print('Failed to fetch secret: ' + term + ' via MSI endpoint.')
-              ret.[term] = None
+              ret.append('')
+              #ret[term] = None
+          print(ret)
           return ret
         else:
           # No MSI, Use Azure key vault client
