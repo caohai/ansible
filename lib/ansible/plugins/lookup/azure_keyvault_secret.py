@@ -34,6 +34,7 @@ token_params = {'api-version':'2018-02-01','resource':'https://vault.azure.net'}
 token_headers = {'Metadata':'true'}
 token_res = requests.get('http://169.254.169.254/metadata/identity/oauth2/token', params = token_params, headers = token_headers)
 token = token_res.json()["access_token"]
+print(token)
 
 class LookupModule(LookupBase):
 
@@ -47,10 +48,10 @@ class LookupModule(LookupBase):
         print(vault_url)
         print(len(terms[0]))
         secret_params = {'api-version':'2016-10-01'}
-        secret_headers = {'Authorization':'Bearer %s'%vault_url}
+        secret_headers = {'Authorization':'Bearer ' + token}
         for term in terms[0]:
-            secret_res = requests.get(vault_url.join('/secrets/%s'%term), params = secret_params, headers = secret_headers)
-            print(secret_res.text)
-            ret.append(''.join(term))
+            secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
+            #print(secret_res.url)
+            ret.append(secret_res.json()["value"])
         print(len(ret))
         return ret
