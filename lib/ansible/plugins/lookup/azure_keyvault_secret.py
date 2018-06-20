@@ -46,7 +46,11 @@ class LookupModule(LookupBase):
         vault_url = kwargs.pop('vault_url',None)
         print(vault_url)
         print(len(terms[0]))
+        secret_params = {'api-version':'2016-10-01'}
+        secret_headers = {'Authorization':'Bearer %s'%vault_url}
         for term in terms[0]:
+            secret_res = requests.get(vault_url.join('/secrets/%s'%term), params = secret_params, headers = secret_headers)
+            print(secret_res.text)
             ret.append(''.join(term))
         print(len(ret))
         return ret
