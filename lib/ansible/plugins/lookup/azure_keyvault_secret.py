@@ -60,11 +60,11 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             try:
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
-              ret.append(secret_res.json()["value"])
+              ret.extend([{term:secret_res.json()["value"]}])
               #ret[term] = secret_res.json()["value"]
             except:
               print('Failed to fetch secret: ' + term + ' via MSI endpoint.')
-              ret.append('')
+              ret.extend([{term:''}])
               #ret[term] = None
           print(ret)
           return ret
