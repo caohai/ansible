@@ -4,12 +4,12 @@ __metaclass__ = type
 
 DOCUMENTATION = """
       lookup: azure_keyvault_secret
-        short_description: read secrets from azure key vault.
+        short_description: read secret from azure key vault.
         description:
-            - This lookup returns the contents of a secret kept in azure key vault.
+            - This lookup returns the content of a secret kept in azure key vault.
         options:
           _terms:
-            description: secret name(s) of secrets to retrieve
+            description: secret name of the secret to retrieve
             required: True
           vault_url:
             description: url of azure key vault to be retrieved from
@@ -63,11 +63,13 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             try:
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
-              ret.extend(self._flatten_hash_to_list({term:secret_res.json()["value"]}))
+              ret.append(''.join(secret_res.json()["value"]))
+              #ret.extend(self._flatten_hash_to_list({term:secret_res.json()["value"]}))
               #ret[term] = secret_res.json()["value"]
             except requests.exceptions.RequestException as e:
               print('Failed to fetch secret: ' + term + ' via MSI endpoint.')
-              ret.extend(self._flatten_hash_to_list({term:''}))
+              ret.append('')
+              #ret.extend(self._flatten_hash_to_list({term:''}))
               #ret[term] = None
           print(ret)
           return ret
@@ -93,6 +95,7 @@ class LookupModule(LookupBase):
 
           for term in terms[0]:
             secret = client.get_secret(vault_url,term,'').value
-            ret.extend(self._flatten_hash_to_list({term:secret}))
+            # ret.extend(self._flatten_hash_to_list({term:secret}))
+            ret.append(''.join(secret))
           #print('This is azure key vault client version')
           return ret
