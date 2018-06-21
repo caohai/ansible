@@ -41,7 +41,7 @@ token = None
 try:
   token_res = requests.get('http://169.254.169.254/metadata/identity/oauth2/token', params = token_params, headers = token_headers)
   token = token_res.json()["access_token"]
-  #TOKEN_ACQUIRED = True
+  TOKEN_ACQUIRED = True
 except requests.exceptions.RequestException as e:
   print('Unable to fetch MSI token.')
   TOKEN_ACQUIRED = False
@@ -89,7 +89,7 @@ class LookupModule(LookupBase):
           client = KeyVaultClient(credentials)
 
           for term in terms[0]:
-            secret = client.get_secret(vault_url,term).value
+            secret = client.get_secret(vault_url,term,'').value
             ret.extend(self._flatten_hash_to_list({term:secret}))
 
           return ret
