@@ -48,7 +48,7 @@ try:
 except requests.exceptions.RequestException as e:
   print('Unable to fetch MSI token. Will use service principal if provided.')
   TOKEN_ACQUIRED = False
-print(token)
+#print(token)
 
 class LookupModule(LookupBase):
 
@@ -63,7 +63,8 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             try:
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
-              ret.append(''.join(secret_res.json()["value"]))
+              #print(secret_res.text)
+              ret.append(secret_res.json()["value"])
               #ret.extend(self._flatten_hash_to_list({term:secret_res.json()["value"]}))
               #ret[term] = secret_res.json()["value"]
             except requests.exceptions.RequestException as e:
@@ -71,7 +72,7 @@ class LookupModule(LookupBase):
               ret.append('')
               #ret.extend(self._flatten_hash_to_list({term:''}))
               #ret[term] = None
-          print(ret)
+          #print(ret)
           return ret
         else:
           # No MSI, Use Azure key vault client
@@ -96,6 +97,6 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             secret = client.get_secret(vault_url,term,'').value
             # ret.extend(self._flatten_hash_to_list({term:secret}))
-            ret.append(''.join(secret))
+            ret.append(secret)
           #print('This is azure key vault client version')
           return ret
