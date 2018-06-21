@@ -94,5 +94,5 @@ class LookupModule(LookupBase):
           for term in terms[0]:
             secret = client.get_secret(vault_url,term,'').value
             ret.extend(self._flatten_hash_to_list({term:secret}))
-
+          #print('This is azure key vault client version')
           return ret
