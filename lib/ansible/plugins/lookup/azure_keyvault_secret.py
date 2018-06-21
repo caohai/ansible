@@ -71,4 +71,24 @@ class LookupModule(LookupBase):
         else:
           # No MSI, Use Azure key vault client
           # To do
+          try:
+            from azrue.keyvault import KeyVaultClient
+            from akv_vars import *
+          except ImportError:
+            raise AnsibleError('The azure_keyvault_secret lookup plugin requires azure.keyvault and akv_vars to be installed.')
+          client_id = kwargs.pop('client_id',None)
+          key = kwargs.pop('key',None)
+          tenant_id = kwargs.pop('tenant_id',None)
+
+          credentials = ServicePrincipalCredentials(
+            client_id = client_id,
+            secret = key,
+            tenant = tenant_id
+          )
+
+          client = KeyVaultClient(credentials)
+
+          secret = client.get_secret(vault_url,term).value
+          ret.extend(self._flatten_hash_to_list({term:secret}))
+
           return ret
