@@ -16,12 +16,15 @@ DOCUMENTATION = """
             default: 'azure-key-vault'
             required: True
           client_id:
-            description: azure client id that has access to the provided azure key vault
-          secret:
-            description: secret of client_id provided above
+            description: client_id of service principal that has access to the provided azure key vault
+          key:
+            description: key of service principal provided above
+          tenant_id:
+            description: tenant_id of service principal provided above
 
         notes:
-          - TODO
+          - If this plugin is called on an azure virtual machine and the machine has access to the desired key vault via MSI, then you don't need to provide client_id, key, tenant_id.
+          - If this plugin is called on a non-azure virtual machine or it's an azure machine has no access to the desired key vault via MSI, then you have to provide a valid service principal that has access to the key vault. 
 """
 from ansible.errors import AnsibleError, AnsibleParserError
 from ansible.plugins.lookup import LookupBase
@@ -43,7 +46,7 @@ try:
   token = token_res.json()["access_token"]
   TOKEN_ACQUIRED = True
 except requests.exceptions.RequestException as e:
-  print('Unable to fetch MSI token.')
+  print('Unable to fetch MSI token. Will use service principal if provided.')
   TOKEN_ACQUIRED = False
 print(token)
 
@@ -62,7 +65,7 @@ class LookupModule(LookupBase):
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
               ret.extend(self._flatten_hash_to_list({term:secret_res.json()["value"]}))
               #ret[term] = secret_res.json()["value"]
-            except:
+            except requests.exceptions.RequestException as e:
               print('Failed to fetch secret: ' + term + ' via MSI endpoint.')
               ret.extend(self._flatten_hash_to_list({term:''}))
               #ret[term] = None
@@ -75,7 +78,7 @@ class LookupModule(LookupBase):
             from azure.common.credentials import ServicePrincipalCredentials
             from azure.keyvault import KeyVaultClient
           except ImportError:
-            raise AnsibleError('The azure_keyvault_secret lookup plugin requires azure.keyvault and akv_vars to be installed.')
+            raise AnsibleError('The azure_keyvault_secret lookup plugin requires azure.keyvault and azure.common.credentials to be installed.')
           client_id = kwargs.pop('client_id',None)
           key = kwargs.pop('key',None)
           tenant_id = kwargs.pop('tenant_id',None)
