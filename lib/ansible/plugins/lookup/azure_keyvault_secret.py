@@ -41,7 +41,7 @@ token = None
 try:
   token_res = requests.get('http://169.254.169.254/metadata/identity/oauth2/token', params = token_params, headers = token_headers)
   token = token_res.json()["access_token"]
-  TOKEN_ACQUIRED = True
+  #TOKEN_ACQUIRED = True
 except requests.exceptions.RequestException as e:
   print('Unable to fetch MSI token.')
   TOKEN_ACQUIRED = False
@@ -72,8 +72,8 @@ class LookupModule(LookupBase):
           # No MSI, Use Azure key vault client
           # To do
           try:
-            from azrue.keyvault import KeyVaultClient
-            from akv_vars import *
+            from azure.common.credentials import ServicePrincipalCredentials
+            from azure.keyvault import KeyVaultClient
           except ImportError:
             raise AnsibleError('The azure_keyvault_secret lookup plugin requires azure.keyvault and akv_vars to be installed.')
           client_id = kwargs.pop('client_id',None)
@@ -88,7 +88,8 @@ class LookupModule(LookupBase):
 
           client = KeyVaultClient(credentials)
 
-          secret = client.get_secret(vault_url,term).value
-          ret.extend(self._flatten_hash_to_list({term:secret}))
+          for term in terms[0]:
+            secret = client.get_secret(vault_url,term).value
+            ret.extend(self._flatten_hash_to_list({term:secret}))
 
           return ret
