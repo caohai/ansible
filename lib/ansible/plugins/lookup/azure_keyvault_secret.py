@@ -29,7 +29,13 @@ DOCUMENTATION = """
 from ansible.errors import AnsibleError, AnsibleParserError
 from ansible.plugins.lookup import LookupBase
 import requests
-import json
+from msrest.exceptions import AuthenticationError,ClientRequestError
+from azure.keyvault.models.key_vault_error import KeyVaultErrorException
+import logging
+
+logging.getLogger('msrestazure.azure_active_directory').addHandler(logging.NullHandler())
+logging.getLogger('msrest.service_client').addHandler(logging.NullHandler())
+
 
 TOKEN_ACQUIRED = False
 
@@ -82,21 +88,30 @@ class LookupModule(LookupBase):
             from azure.keyvault import KeyVaultClient
           except ImportError:
             raise AnsibleError('The azure_keyvault_secret lookup plugin requires azure.keyvault and azure.common.credentials to be installed.')
+
           client_id = kwargs.pop('client_id',None)
           key = kwargs.pop('key',None)
           tenant_id = kwargs.pop('tenant_id',None)
 
-          credentials = ServicePrincipalCredentials(
-            client_id = client_id,
-            secret = key,
-            tenant = tenant_id
-          )
-
-          client = KeyVaultClient(credentials)
+          try:
+            credentials = ServicePrincipalCredentials(
+              client_id = client_id,
+              secret = key,
+              tenant = tenant_id
+            )
+            client = KeyVaultClient(credentials)
+          except AuthenticationError as e:
+            raise AnsibleError('Invalid credentials provided.')
 
           for term in terms[0]:
-            secret = client.get_secret(vault_url,term,'').value
-            # ret.extend(self._flatten_hash_to_list({term:secret}))
-            ret.append(secret)
+            try:
+              secret = client.get_secret(vault_url,term,'').value
+              # ret.extend(self._flatten_hash_to_list({term:secret}))
+              ret.append(secret)
+            except ClientRequestError as e:
+              raise AnsibleError('Error occurred in request')
+            except KeyVaultErrorException as e:
+              print('Failed to fetch secret: ' + term)
+              ret.append('')
           #print('This is azure key vault client version')
           return ret
