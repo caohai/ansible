@@ -113,7 +113,7 @@ class LookupModule(LookupBase):
             except ClientRequestError as e:
               raise AnsibleError('Error occurred in request')
             except KeyVaultErrorException as e:
-              print('Failed to fetch secret: ' + term)
+              raise AnsibleError('Failed to fetch secret ' + term + '.')
               ret.append('')
           #print('This is azure key vault client version')
           return ret
