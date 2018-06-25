@@ -64,7 +64,7 @@ class LookupModule(LookupBase):
         if TOKEN_ACQUIRED:
           secret_params = {'api-version':'2016-10-01'}
           secret_headers = {'Authorization':'Bearer ' + token}
-          for term in terms[0]:
+          for term in terms:
             try:
               secret_res = requests.get(vault_url + 'secrets/' + term, params = secret_params, headers = secret_headers)
               #print(secret_res.text)
@@ -72,10 +72,12 @@ class LookupModule(LookupBase):
               #ret.extend(self._flatten_hash_to_list({term:secret_res.json()["value"]}))
               #ret[term] = secret_res.json()["value"]
             except requests.exceptions.RequestException as e:
-              print('Failed to fetch secret: ' + term + ' via MSI endpoint.')
-              ret.append('')
+              raise AnsibleError('Failed to fetch secret: ' + term + ' via MSI endpoint.')
+              #ret.append('')
               #ret.extend(self._flatten_hash_to_list({term:''}))
               #ret[term] = None
+            except KeyError:
+              raise AnsibleError('Failed to fetch secret ' + term + '.')
           #print(ret)
           return ret
         else:
@@ -103,7 +105,7 @@ class LookupModule(LookupBase):
           except AuthenticationError as e:
             raise AnsibleError('Invalid credentials provided.')
 
-          for term in terms[0]:
+          for term in terms:
             try:
               secret = client.get_secret(vault_url,term,'').value
               # ret.extend(self._flatten_hash_to_list({term:secret}))
